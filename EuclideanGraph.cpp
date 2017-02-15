@@ -4,14 +4,36 @@
 #include <cstdlib>
 #include <ctime>
 #include <chrono>
+#include <stdexcept>
 
 struct Point2D {
-    double v[2];
+    double x;
+    double y;
+
+    double& operator[](size_t idx) {
+        if(idx == 0) {
+            return x;
+        } else if(idx == 1) {
+            return y;
+        } else {
+            throw std::out_of_range("Index out of bounds for Point2D.\n");
+        }
+    }
+
+    const double& operator[](size_t idx) const {
+        if(idx == 0) {
+            return x;
+        } else if(idx == 1) {
+            return y;
+        } else {
+            throw std::out_of_range("Index out of bounds for Point2D.\n");
+        }
+    }
 };
 
 bool cmp_x(const Point2D& a, const Point2D& b) {
     
-    if(a.v[0] < b.v[0]) {
+    if(a[0] < b[0]) {
         return true;
     } else {
         return false;
@@ -20,7 +42,7 @@ bool cmp_x(const Point2D& a, const Point2D& b) {
 
 bool cmp_y(const Point2D& a, const Point2D& b) {
     
-    if(a.v[1] < b.v[1]) {
+    if(a[1] < b[1]) {
         return true;
     } else {
         return false;
@@ -61,10 +83,7 @@ class EuclideanGraph {
         
         void insert(Point2D point) {
             points.push_back(point);
-
-            if(pointTree->root != NULL) {
-                pointTree->insert(points.size()-1);
-            }
+            pointTree->insert(points.size()-1);
         }
 
         void build_tree() {
@@ -149,7 +168,7 @@ class EuclideanGraph {
                     Point2D to_insert = owner.getPoint(idx);
                     Point2D sep = owner.getPoint(separator);
                     
-                    if(to_insert.v[component] < sep.v[component]) {
+                    if(to_insert[component] < sep[component]) {
                         if(less != NULL) {
                             return less->insert(idx);
                         } else {
@@ -203,13 +222,13 @@ int main(int argc, char** argv) {
 
     std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
 
-    Point2D origin = { {0.0, 0.0} };
+    Point2D origin = {0.0, 0.0};
     eucl_graph.insert(origin);
 
     for(int i = 0; i < 500000; i++) {
         double x = ((double)(std::rand() - (RAND_MAX/2))/(RAND_MAX)) * 2.0;
         double y = ((double)(std::rand() - (RAND_MAX/2))/(RAND_MAX)) * 2.0;
-        Point2D pnt = { {x, y} };
+        Point2D pnt = {x*100, y*100};
         eucl_graph.insert(pnt);
     }
 
