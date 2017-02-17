@@ -1,4 +1,5 @@
 #include <vector>
+#include <cmath>
 #include <iostream>
 #include <algorithm>
 #include <cstdlib>
@@ -49,14 +50,6 @@ bool cmp_y(const Point2D& a, const Point2D& b) {
     }
 }
 
-void sortByComponent(std::vector<Point2D>& input, size_t component) {
-    if(component == 0) {
-        std::sort(input.begin(), input.end(), cmp_x);
-    } else if(component == 1) {
-        std::sort(input.begin(), input.end(), cmp_y);
-    }
-}
-
 void sortRangeByComponent(std::vector<Point2D>& input, size_t component, size_t start, size_t end) {
     if(start == end) {
         return;
@@ -67,6 +60,10 @@ void sortRangeByComponent(std::vector<Point2D>& input, size_t component, size_t 
     } else if(component == 1) {
         std::sort(input.begin()+start, input.begin()+end, cmp_y);
     }
+}
+
+void sortByComponent(std::vector<Point2D>& input, size_t component) {
+    sortRangeByComponent(input, component, 0, input.size());
 }
 
 class EuclideanGraph {
@@ -84,6 +81,10 @@ class EuclideanGraph {
         void insert(Point2D point) {
             points.push_back(point);
             pointTree->insert(points.size()-1);
+        }
+
+        size_t nearest_neighbor(Point2D point) {
+            return pointTree->nearest_neigbor(point);
         }
 
         void build_tree() {
@@ -121,6 +122,15 @@ class EuclideanGraph {
                 return owner.points.at(idx);
             }
 
+
+            size_t nearest_neigbor(Point2D point) {
+                if(root) {
+                    return root->nearest_neighbor(point, root->separator);
+                } else {
+                    return (size_t)(-1);
+                }
+            }
+
             void insert(size_t idx) {
                 if(root == NULL) {
                     root = new KDTreeNode(*this, idx, 0);
@@ -134,7 +144,7 @@ class EuclideanGraph {
                 if(root == NULL) {
                     root = new KDTreeNode(*this, (size_t)(-1), 0);
                 }
-                root->insert(points, 0, points.size());
+                root->insert(points, 0, points.size()-1);
                 count += points.size();
             }
 
@@ -162,6 +172,27 @@ class EuclideanGraph {
                     delete less;
                     delete greater;
                 }
+
+                size_t nearest_neighbor(Point2D point, size_t current_best) {
+                    Point2D sep = owner.getPoint(separator);
+
+                    if(less != NULL) {
+                        current_best = less->nearest_neighbor(point, current_best);
+                    }
+
+                    Point2D best_pt = owner.getPoint(current_best);
+                    double best_dist = std::sqrt((best_pt.x - point.x) * (best_pt.x - point.x) + (best_pt.y - point.y) * (best_pt.y - point.y));
+
+                    if(best_pt[level%2] - sep[level%2] > best_dist) {
+                        return current_best;
+                    }
+
+                    if(greater != NULL) {
+                        current_best = greater->nearest_neighbor(point, current_best);
+                    }
+
+                    return current_best;
+                }
                 
                 KDTreeNode* insert(size_t idx) {
                     size_t component = level % 2;
@@ -187,7 +218,7 @@ class EuclideanGraph {
                 
                 void insert(std::vector<Point2D>& points, size_t start, size_t end) {
                     if(points.size() > 0) {
-                        if((end-start) > 0) {
+                        if((end-start) > 1) {
                             size_t median = (start + ((end - start)/2));
                             size_t component = (level+1) % 2;
                             separator = median;
@@ -222,9 +253,6 @@ int main(int argc, char** argv) {
 
     std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
 
-    Point2D origin = {0.0, 0.0};
-    eucl_graph.insert(origin);
-
     for(int i = 0; i < 500000; i++) {
         double x = ((double)(std::rand() - (RAND_MAX/2))/(RAND_MAX)) * 2.0;
         double y = ((double)(std::rand() - (RAND_MAX/2))/(RAND_MAX)) * 2.0;
@@ -236,12 +264,36 @@ int main(int argc, char** argv) {
     std::chrono::duration<double, std::milli> diff = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(end-start);
     std::cout << "Time for incremental insertion: " << diff.count() << "ms\n";
 
-    start = start = std::chrono::high_resolution_clock::now();
+    double x = ((double)(std::rand() - (RAND_MAX/2))/(RAND_MAX)) * 2.0;
+    double y = ((double)(std::rand() - (RAND_MAX/2))/(RAND_MAX)) * 2.0;
+    Point2D pnt = {x*100, y*100};
+
+    start = std::chrono::high_resolution_clock::now();
+    size_t nn = eucl_graph.nearest_neighbor(pnt);
+    end = std::chrono::high_resolution_clock::now();
+
+    diff = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(end-start);
+
+    std::cout << "Time for (potentially) unbalanced tree nearest neighbor search: " << diff.count() << "ms\n\n";
+
+    start = std::chrono::high_resolution_clock::now();
     eucl_graph.build_tree();
     end = std::chrono::high_resolution_clock::now();
     diff = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(end-start);
 
     std::cout << "Time for balanced tree build: " << diff.count() << "ms\n";
+
+    x = ((double)(std::rand() - (RAND_MAX/2))/(RAND_MAX)) * 2.0;
+    y = ((double)(std::rand() - (RAND_MAX/2))/(RAND_MAX)) * 2.0;
+    pnt = {x*100, y*100};
+
+    start = start = std::chrono::high_resolution_clock::now();
+    nn = eucl_graph.nearest_neighbor(pnt);
+    end = std::chrono::high_resolution_clock::now();
+
+    diff = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(end-start);
+
+    std::cout << "Time for balanced tree nearest neighbor search: " << diff.count() << "ms\n\n";
 
     return 0;
 }
