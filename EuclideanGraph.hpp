@@ -24,7 +24,7 @@ void sortByComponent(std::vector<Point2D>& input, size_t component);
 class EuclideanGraph {
     public:
         
-        EuclideanGraph(double r);
+        EuclideanGraph(double r = 1.00);
         ~EuclideanGraph();
         
         void insert(Point2D point);
@@ -62,7 +62,6 @@ class EuclideanGraph {
             std::vector<size_t> radius_search(Point2D point, double radius);
 
             void insert(size_t idx);
-
             void insert(std::vector<Point2D>& points);
 
             void clear();

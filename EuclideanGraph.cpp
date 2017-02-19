@@ -160,7 +160,7 @@ void EuclideanGraph::KDTree::KDTreeNode::insert(std::vector<Point2D>& points, si
     if(points.size() > 0) {
         if((end-start) > 1) {
             size_t median = (start + ((end - start)/2));
-            size_t component = (level+1) % 2;
+            size_t component = level % 2;
             separator = median;
 
             if(less == NULL) {
@@ -183,39 +183,73 @@ void EuclideanGraph::KDTree::KDTreeNode::insert(std::vector<Point2D>& points, si
     }
 }
 
+//Adapted from here: https://en.wikipedia.org/wiki/K-d_tree#Nearest_neighbour_search
 size_t EuclideanGraph::KDTree::KDTreeNode::nearest_neighbor(Point2D point, size_t current_best) {
+
+    //If this is a leaf, then the algorithm has searched to the closest point it can find.
+    //So this is the initial current best, pass it up the call stack.
+    if((less == NULL) && (greater == NULL)) {
+        return separator;
+    }
+
     Point2D sep = owner.getPoint(separator);
+    size_t component = (level % 2);
 
-    if(less != NULL) {
-        current_best = less->nearest_neighbor(point, current_best);
+    //At this point, we know this isn't a leaf, so recurse down the appropriate path- just like
+    //the search done for insertion.
+    if(point[component] < sep[component]) {
+        if(less != NULL) {
+            current_best = less->nearest_neighbor(point, current_best);
+        }
+    } else {
+        if(greater != NULL) {
+            current_best = greater->nearest_neighbor(point, current_best);
+        }
     }
 
+    //Now we try to see if we are the current best point- the splitting plane might have left the
+    //current best a further euclidean distance away, even if closer by one component.
+    //Using squared distance to eliminate some unnecessary calculations
     Point2D best_pt = owner.getPoint(current_best);
-    double best_dist = std::sqrt((best_pt.x - point.x) * (best_pt.x - point.x) + (best_pt.y - point.y) * (best_pt.y - point.y));
+    double best_dist_sqr = ((best_pt.x - point.x) * (best_pt.x - point.x)) + ((best_pt.y - point.y) * (best_pt.y - point.y));
+    double this_dist_sqr = ((sep.x - point.x) * (sep.x - point.x)) + ((sep.y - point.y) * (sep.y - point.y));
 
-    if(std::abs(best_pt[level%2] - sep[level%2]) > best_dist) {
-        return current_best;
+    if(this_dist_sqr < best_dist_sqr) {
+        current_best = separator;
+        best_dist_sqr = this_dist_sqr;
     }
 
-    if(greater != NULL) {
-        current_best = greater->nearest_neighbor(point, current_best);
+    //Finally, we check to see if the radius describing the closest distance might pass the separating
+    //axis.
+    //If it does, then we have to check down the other side, which could still have a closer point.
+    if((sep[component] - point[component]) * (sep[component] - point[component]) < best_dist_sqr) {
+        if(point[component] < sep[component]) {
+            current_best = greater->nearest_neighbor(point, current_best);
+        } else {
+            current_best = less->nearest_neighbor(point, current_best);
+        }
     }
 
+    //We return whatever is the current best at this point, up the call stack.
     return current_best;
 }
 
 std::vector<size_t> EuclideanGraph::KDTree::KDTreeNode::radius_search(std::vector<size_t>& in_rad, Point2D point, double radius) {
     Point2D sep = owner.getPoint(separator);
 
-    double dist = std::sqrt(((sep.x - point.x) * (sep.x - point.x)) + ((sep.y - point.y) * (sep.y - point.y)));
+    double dist_sqr = ((sep.x - point.x) * (sep.x - point.x)) + ((sep.y - point.y) * (sep.y - point.y));
 
-    if(dist <= radius) {
+    //If the separator is in the bounds of the radius, add it
+    if(dist_sqr <= (radius*radius)) {
         in_rad.push_back(separator);
     }
 
+    //If we can eliminate one side, do so
     if(std::abs(sep[level%2] - point[level%2]) > radius) {
-        if((less != NULL) && (point[level%2] < sep[level%2])) {
-            less->radius_search(in_rad, point, radius);
+        if(point[level%2] < sep[level%2]) {
+            if(less != NULL) {
+                less->radius_search(in_rad, point, radius);
+            }
         } else {
             if(greater != NULL) {
                 greater->radius_search(in_rad, point, radius);
