@@ -1,0 +1,26 @@
+
+
+
+bool EuclideanGraph::Graph::Vertex::operator==(const Graph::Vertex& other) {
+    return other.index == this->index;
+}
+
+bool EuclideanGraph::Graph::Vertex::operator!=(const Vertex& other) {
+    return other.index != this->index;
+}
+
+bool EuclideanGraph::Graph::Vertex::operator<(const Vertex& other) {
+    return other.index < this->index;
+}
+
+bool EuclideanGraph::Graph::Vertex::operator>(const Vertex& other) {
+    return other.index > this->index;
+}
+
+bool EuclideanGraph::Graph::Vertex::operator<=(const Vertex& other) {
+    return !(*this > other);
+}
+
+bool EuclideanGraph::Graph::Vertex::operator>=(const Vertex& other) {
+    return !(*this < other);
+}
