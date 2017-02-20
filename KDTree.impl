@@ -1,0 +1,187 @@
+EuclideanGraph::KDTree::~KDTree() {
+    delete root;
+}
+
+Vec2D EuclideanGraph::KDTree::getPoint(size_t idx) const {
+    return owner.points.at(idx);
+}
+
+size_t EuclideanGraph::KDTree::nearest_neigbor(Vec2D point) const {
+    if(root) {
+        return root->nearest_neighbor(point, root->separator);
+    } else {
+        return (size_t)(-1);
+    }
+}
+
+std::vector<size_t> EuclideanGraph::KDTree::radius_search(Vec2D point, double radius) const {
+    if(root) {
+        std::vector<size_t> in_rad;
+        root->radius_search(in_rad, point, radius);
+    } else {
+        return std::vector<size_t>();
+    }
+}
+
+void EuclideanGraph::KDTree::insert(size_t idx) {
+    if(root == NULL) {
+        root = new KDTreeNode(*this, idx, 0);
+    } else {
+        root->insert(idx);
+    }
+    count++;
+}
+
+void EuclideanGraph::KDTree::insert(std::vector<Vec2D>& points) {
+    if(root == NULL) {
+        root = new KDTreeNode(*this, (size_t)(-1), 0);
+    }
+    root->insert(points, 0, points.size()-1);
+    count += points.size();
+}
+
+void EuclideanGraph::KDTree::clear() {
+    delete root;
+    root = NULL;
+    count = 0;
+}
+
+EuclideanGraph::KDTree::KDTreeNode::~KDTreeNode() {
+    delete less;
+    delete greater;
+}
+
+EuclideanGraph::KDTree::KDTreeNode* EuclideanGraph::KDTree::KDTreeNode::insert(size_t idx) {
+    size_t component = level % 2;
+    Vec2D to_insert = owner.getPoint(idx);
+    Vec2D sep = owner.getPoint(separator);
+
+    if(to_insert[component] < sep[component]) {
+        if(less != NULL) {
+            return less->insert(idx);
+        } else {
+            less = new KDTreeNode(owner, idx, level + 1);
+            return less;
+        }
+    } else {
+        if(greater != NULL) {
+            return greater->insert(idx);
+        } else {
+            greater = new KDTreeNode(owner, idx, level + 1);
+            return greater;
+        }
+    }
+}
+
+void EuclideanGraph::KDTree::KDTreeNode::insert(std::vector<Vec2D>& points, size_t start, size_t end) {
+    if(points.size() > 0) {
+        if((end-start) > 1) {
+            size_t median = (start + ((end - start)/2));
+            size_t component = level % 2;
+            separator = median;
+
+            if(less == NULL) {
+                less = new KDTreeNode(owner, (size_t)(-1), level+1);
+            }
+
+            if(greater == NULL) {
+                greater = new KDTreeNode(owner, (size_t)(-1), level+1);
+            }
+
+            sortRangeByComponent(points, component, start, median);
+            sortRangeByComponent(points, component, median+1, end);
+
+            less->insert(points, start, median);
+            greater->insert(points, median+1, end);
+
+        } else {
+            separator = start;
+        }
+    }
+}
+
+//Adapted from here: https://en.wikipedia.org/wiki/K-d_tree#Nearest_neighbour_search
+
+size_t EuclideanGraph::KDTree::KDTreeNode::nearest_neighbor(Vec2D point, size_t current_best) const {
+
+    //If this is a leaf, then the algorithm has searched to the closest point it can find.
+    //So this is the initial current best, pass it up the call stack.
+
+    if((less == NULL) && (greater == NULL)) {
+        return separator;
+    }
+
+    Vec2D sep = owner.getPoint(separator);
+    size_t component = (level % 2);
+
+    //At this point, we know this isn't a leaf, so recurse down the appropriate path- just like
+    //the search done for insertion.
+
+    if(point[component] < sep[component]) {
+        if(less != NULL) {
+            current_best = less->nearest_neighbor(point, current_best);
+        }
+    } else {
+        if(greater != NULL) {
+            current_best = greater->nearest_neighbor(point, current_best);
+        }
+    }
+
+    //Now we try to see if we are the current best point- the splitting plane might have left the
+    //current best a further euclidean distance away, even if closer by one component.
+    //Using squared distance to eliminate some unnecessary calculations
+
+    Vec2D best_pt = owner.getPoint(current_best);
+    double best_dist_sqr = distance_sqr(best_pt, point);
+    double this_dist_sqr = distance_sqr(sep, point);
+
+    if(this_dist_sqr < best_dist_sqr) {
+        current_best = separator;
+        best_dist_sqr = this_dist_sqr;
+    }
+
+    //Finally, we check to see if the radius describing the closest distance might pass the separating
+    //axis.
+    //If it does, then we have to check down the other side, which could still have a closer point.
+
+    if((sep[component] - point[component]) * (sep[component] - point[component]) < best_dist_sqr) {
+        if(point[component] < sep[component]) {
+            current_best = greater->nearest_neighbor(point, current_best);
+        } else {
+            current_best = less->nearest_neighbor(point, current_best);
+        }
+    }
+
+    //We return whatever is the current best at this point, up the call stack.
+
+    return current_best;
+}
+
+std::vector<size_t> EuclideanGraph::KDTree::KDTreeNode::radius_search(std::vector<size_t>& in_rad, Vec2D point, double radius) const {
+    Vec2D sep = owner.getPoint(separator);
+
+    double dist_sqr = distance_sqr(sep, point);
+
+    //If the separator is in the bounds of the radius, add it.
+
+    if(dist_sqr <= (radius*radius)) {
+        in_rad.push_back(separator);
+    }
+
+    //If we can eliminate one side, do so.
+
+    if(std::abs(sep[level%2] - point[level%2]) > radius) {
+        if(point[level%2] < sep[level%2]) {
+            if(less != NULL) {
+                less->radius_search(in_rad, point, radius);
+            }
+        } else {
+            if(greater != NULL) {
+                greater->radius_search(in_rad, point, radius);
+            }
+        }
+    } else {
+        less->radius_search(in_rad, point, radius);
+        greater->radius_search(in_rad, point, radius);
+    }
+}
