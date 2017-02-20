@@ -23,7 +23,7 @@ class EuclideanGraph {
         EuclideanGraph();
         ~EuclideanGraph();
         
-        void insert(Vec2D point);
+        void insert(Vec2D point, double radius);
 
         size_t nearest_neighbor(Vec2D point) const ;
         std::vector<size_t> radius_search(Vec2D point, double radius) const;

@@ -38,14 +38,17 @@ void sortByComponent(std::vector<Vec2D>& input, size_t component) {
 
 EuclideanGraph::EuclideanGraph() {
     pointTree = new KDTree(*this);
+    graph = new Graph(*this);
 }
 
 EuclideanGraph::~EuclideanGraph() {
     delete pointTree;
+    delete graph;
 }
 
-void EuclideanGraph::insert(Vec2D point) {
+void EuclideanGraph::insert(Vec2D point, double radius) {
     points.push_back(point);
+    graph->insert(points.size()-1, radius);
     pointTree->insert(points.size()-1);
 }
 

@@ -1,5 +1,32 @@
+void EuclideanGraph::Graph::insert_vertex(size_t index) {
+    vertices[index] = Vertex(index);
+}
 
+void EuclideanGraph::Graph::insert_edge(size_t from, size_t to) {
+    Vec2D vec_f = get_point(from);
+    Vec2D vec_t = get_point(to);
 
+    edges.push_back(Edge(from, to, distance(vec_t, vec_f)));
+    vertices[from].edge_indices.push_back(edges.size()-1);
+    vertices[to].edge_indices.push_back(edges.size()-1);
+}
+
+void EuclideanGraph::Graph::insert(size_t index, double radius) {
+    Vec2D point = get_point(index);
+    std::vector<size_t> nearby = owner.radius_search(point, radius);
+
+    vertices[index] = Vertex(index);
+
+    for(int i = 0; i < nearby.size(); i++) {
+        if(nearby[i] != index) {
+            insert_edge(index, nearby[i]);
+        }
+    }
+}
+
+Vec2D EuclideanGraph::Graph::get_point(size_t idx) const {
+    return owner.points.at(idx);
+}
 
 bool EuclideanGraph::Graph::Vertex::operator==(const Graph::Vertex& other) {
     return other.index == this->index;
