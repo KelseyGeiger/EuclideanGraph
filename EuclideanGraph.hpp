@@ -2,6 +2,7 @@
 #define EUCLIDEANGRAPH_HPP
 
 #include <vector>
+#include <stack>
 #include <iostream>
 #include <algorithm>
 #include <cstdlib>
@@ -27,6 +28,7 @@ class EuclideanGraph {
 
         size_t nearest_neighbor(Vec2D point) const ;
         std::vector<size_t> radius_search(Vec2D point, double radius) const;
+        std::stack<Vec2D> A_Star(Vec2D start, Vec2D goal) const;
 
         void clear();
         

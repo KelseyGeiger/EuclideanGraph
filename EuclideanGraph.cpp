@@ -60,6 +60,13 @@ std::vector<size_t> EuclideanGraph::radius_search(Vec2D point, double radius) co
     return pointTree->radius_search(point, radius);
 }
 
+std::stack<Vec2D> EuclideanGraph::A_Star(Vec2D start, Vec2D goal) const {
+    size_t start_idx = nearest_neighbor(start);
+    size_t goal_idx = nearest_neighbor(goal);
+
+    return graph->A_Star(start_idx, goal_idx);
+}
+
 void EuclideanGraph::clear() {
     pointTree->clear();
     points.clear();
