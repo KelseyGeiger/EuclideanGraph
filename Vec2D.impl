@@ -50,6 +50,10 @@ Vec2D normal(Vec2D v) {
     return v / mag(v);
 }
 
+Vec2D operator-(const Vec2D& v) {
+    return Vec2D(-v.x, -v.y);
+}
+    
 Vec2D operator+(Vec2D lhs, const Vec2D& rhs) {
     return Vec2D(lhs.x + rhs.x, lhs.y + rhs.y);
 }
