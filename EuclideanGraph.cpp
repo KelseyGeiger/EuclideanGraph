@@ -86,6 +86,10 @@ void EuclideanGraph::clear() {
     points.clear();
 }
 
+//UNCOMMENT THIS SECTION AND COMPILE THIS FILE FOR TESTS
+//THIS WILL BE MOVED TO EXTERNAL TEST FILES SOON
+
+/*
 Vec2D new_point(const EuclideanGraph& graph, Vec2D current, double heading) {
     std::vector<size_t> within_meter = graph.radius_search(current, 1.0);
     double x_partial_der = 0.0;
@@ -120,4 +124,4 @@ int main(int argc, char** argv) {
 
 
     return 0;
-}
+}*/
