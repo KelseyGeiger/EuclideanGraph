@@ -24,7 +24,7 @@ struct EuclideanGraph::Graph {
     void insert_edge(size_t from, size_t to);
     void insert(size_t index, double radius);
 
-    std::stack<Vec2D> A_Star(size_t from, size_t to) const;
+    std::stack<Vec2D> A_star(size_t from, size_t to) const;
     std::stack<Vec2D> construct_path(const std::map<size_t, size_t>& pred, size_t current) const;
 
     Vec2D get_point(size_t idx) const;

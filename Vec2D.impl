@@ -27,23 +27,27 @@ Vec2D perp(const Vec2D& v) {
 }
 
 double distance(Vec2D lhs, Vec2D rhs) {
-    return (lhs-rhs).mag();
+    return mag(lhs-rhs);
 }
 
 double distance_sqr(Vec2D lhs, Vec2D rhs) {
-    return (lhs-rhs).mag_sqr();
+    return mag_sqr(lhs-rhs);
 }
 
-double Vec2D::angle_rad() const {
-    return std::atan2(y, x);
+double angle_rad(Vec2D v) {
+    return std::atan2(v.y, v.x);
 }
 
-double Vec2D::mag_sqr() const {
-    return (x * x) + (y * y);
+double mag_sqr(Vec2D v) {
+    return (v.x * v.x) + (v.y * v.y);
 }
 
-double Vec2D::mag() const {
-    return std::sqrt(mag_sqr());
+double mag(Vec2D v) {
+    return std::sqrt(mag_sqr(v));
+}
+
+Vec2D normal(Vec2D v) {
+    return v / mag(v);
 }
 
 Vec2D operator+(Vec2D lhs, const Vec2D& rhs) {
@@ -64,4 +68,27 @@ Vec2D operator*(double lhs, const Vec2D& rhs) {
 
 Vec2D operator/(Vec2D lhs, const double& rhs) {
     return Vec2D(lhs.x / rhs, lhs.y / rhs);
+}
+
+Vec2D& Vec2D::operator=(const Vec2D& rhs) {
+    this->x = rhs.x;
+    this->y = rhs.y;
+
+    return *this;
+}
+
+Vec2D& Vec2D::operator+=(const Vec2D& rhs) {
+    return *this = *this + rhs;
+}
+
+Vec2D& Vec2D::operator-=(const Vec2D& rhs) {
+    return *this = *this - rhs;
+}
+
+Vec2D& Vec2D::operator*=(const double& rhs) {
+    return *this = *this * rhs;
+}
+
+Vec2D& Vec2D::operator/=(const double& rhs) {
+    return *this = *this / rhs;
 }

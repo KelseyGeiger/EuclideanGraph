@@ -23,12 +23,17 @@ class EuclideanGraph {
         
         EuclideanGraph();
         ~EuclideanGraph();
+
+        Vec2D get_point(size_t index) const;
+        void adjust_points(Vec2D offset);
         
         void insert(Vec2D point, double radius);
 
         size_t nearest_neighbor(Vec2D point) const ;
         std::vector<size_t> radius_search(Vec2D point, double radius) const;
-        std::stack<Vec2D> A_Star(Vec2D start, Vec2D goal) const;
+        std::stack<Vec2D> A_star(Vec2D start, Vec2D goal) const;
+
+
 
         void clear();
         

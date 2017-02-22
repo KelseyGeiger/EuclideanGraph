@@ -43,7 +43,7 @@ std::stack<Vec2D> EuclideanGraph::Graph::construct_path(const std::map<size_t, s
     return path;
 }
 
-std::stack<Vec2D> EuclideanGraph::Graph::A_Star(size_t from, size_t to) const {
+std::stack<Vec2D> EuclideanGraph::Graph::A_star(size_t from, size_t to) const {
     std::set<size_t> closed;
     std::set<size_t> open;
     std::map<size_t, size_t> predecessor;
