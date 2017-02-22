@@ -24,6 +24,7 @@ struct Vec2D {
     friend double mag(Vec2D v);
     friend Vec2D normal(Vec2D v);
 
+    friend Vec2D operator-(const Vec2D& v);
     friend Vec2D operator+(Vec2D lhs, const Vec2D& rhs);
     friend Vec2D operator-(Vec2D lhs, const Vec2D& rhs);
     friend Vec2D operator*(Vec2D lhs, const double& rhs);
