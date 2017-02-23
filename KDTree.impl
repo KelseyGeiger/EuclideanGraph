@@ -16,8 +16,7 @@ size_t EuclideanGraph::KDTree::nearest_neigbor(Vec2D point) const {
 
 std::vector<size_t> EuclideanGraph::KDTree::radius_search(Vec2D point, double radius) const {
     if(root) {
-        std::vector<size_t> in_rad;
-        root->radius_search(in_rad, point, radius);
+        return root->radius_search(point, radius);
     } else {
         return std::vector<size_t>();
     }
@@ -109,9 +108,13 @@ size_t EuclideanGraph::KDTree::KDTreeNode::nearest_neighbor(Vec2D point, size_t 
 
     if((sep[component] - point[component]) * (sep[component] - point[component]) < best_dist_sqr) {
         if(point[component] < sep[component]) {
-            current_best = greater->nearest_neighbor(point, current_best);
+            if(greater != NULL) {
+                current_best = greater->nearest_neighbor(point, current_best);
+            }
         } else {
-            current_best = less->nearest_neighbor(point, current_best);
+            if(less != NULL) {
+                current_best = less->nearest_neighbor(point, current_best);
+            }
         }
     }
 
@@ -120,8 +123,38 @@ size_t EuclideanGraph::KDTree::KDTreeNode::nearest_neighbor(Vec2D point, size_t 
     return current_best;
 }
 
-std::vector<size_t> EuclideanGraph::KDTree::KDTreeNode::radius_search(std::vector<size_t>& in_rad, Vec2D point, double radius) const {
+std::vector<size_t> EuclideanGraph::KDTree::KDTreeNode::radius_search(Vec2D point, double radius) const {
+    std::vector<size_t> in_rad;
     Vec2D sep = owner.get_point(separator);
+
+    //If we can eliminate one side, do so.
+    if(std::abs(sep[level%2] - point[level%2]) > radius) {
+        if(point[level%2] < sep[level%2]) {
+            if(less != NULL) {
+                in_rad = less->radius_search(point, radius);
+            }
+        } else {
+            if(greater != NULL) {
+                in_rad = greater->radius_search(point, radius);
+            }
+        }
+    } else {
+        if(less != NULL) {
+            std::vector<size_t> tmp = less->radius_search(point, radius);
+
+            for(size_t i = 0; i < tmp.size(); i++) {
+                in_rad.push_back(tmp[i]);
+            }
+        }
+
+        if(greater != NULL) {
+            std::vector<size_t> tmp = greater->radius_search(point, radius);
+
+            for(size_t i = 0; i < tmp.size(); i++) {
+                in_rad.push_back(tmp[i]);
+            }
+        }
+    }
 
     double dist_sqr = distance_sqr(sep, point);
 
@@ -131,20 +164,5 @@ std::vector<size_t> EuclideanGraph::KDTree::KDTreeNode::radius_search(std::vecto
         in_rad.push_back(separator);
     }
 
-    //If we can eliminate one side, do so.
-
-    if(std::abs(sep[level%2] - point[level%2]) > radius) {
-        if(point[level%2] < sep[level%2]) {
-            if(less != NULL) {
-                less->radius_search(in_rad, point, radius);
-            }
-        } else {
-            if(greater != NULL) {
-                greater->radius_search(in_rad, point, radius);
-            }
-        }
-    } else {
-        less->radius_search(in_rad, point, radius);
-        greater->radius_search(in_rad, point, radius);
-    }
+    return in_rad;
 }

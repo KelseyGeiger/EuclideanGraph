@@ -49,6 +49,6 @@ class EuclideanGraph {
 
 #include "KDTree.hpp"
 #include "Graph.hpp"
-#include "EuclideanGraph.cpp"
+//#include "EuclideanGraph.cpp"
 
 #endif

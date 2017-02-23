@@ -46,7 +46,7 @@ struct EuclideanGraph::KDTree {
         void insert(size_t idx);
 
         size_t nearest_neighbor(Vec2D point, size_t current_best) const;
-        std::vector<size_t> radius_search(std::vector<size_t>& in_rad, Vec2D point, double radius) const;
+        std::vector<size_t> radius_search(Vec2D point, double radius) const;
 
     };
 };
