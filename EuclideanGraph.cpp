@@ -103,6 +103,7 @@ Vec2D new_point(const EuclideanGraph& graph, Vec2D current, double heading) {
     std::vector<size_t> within_meter = graph.radius_search(current, 1.0);
 
     if(within_meter.size() == 0) {
+        heading += ((double)(rand() - (RAND_MAX/2))/RAND_MAX) * (10.0 * M_PI/180.0);
         Vec2D next = current + .3048 * Vec2D(std::cos(heading), std::sin(heading));
 
         if(next.x >= 20.0) {
@@ -157,10 +158,6 @@ Vec2D new_point(const EuclideanGraph& graph, Vec2D current, double heading) {
     return next;
 }
 
-double lerp(double s, double e, double t) {
-    return (1.0-t) * s + t * e;
-}
-
 int main(int argc, char** argv) {
 
     const double MAX_VELOCITY = 0.3;
@@ -197,11 +194,10 @@ int main(int argc, char** argv) {
     rover_graph.insert(current_pos, .3048);
 
     while(found < 256) {
-        double prev_t = t;
         double to_turn = angle_rad(goal_pos - current_pos) - current_heading;
-        double turn_time = std::abs(to_turn / MAX_TURN);
-        double move_time = (mag(goal_pos - current_pos) / MAX_VELOCITY);
         double prev_heading = current_heading;
+        double goal_heading = (prev_heading + to_turn);
+
         Vec2D prev_pos = current_pos;
 
         if(searching) {
@@ -214,36 +210,39 @@ int main(int argc, char** argv) {
 
             std::cout << "\n\nSearch point: " << goal_pos.x << ", " << goal_pos.y << "\n";
 
-            while(std::abs(current_heading - (prev_heading + to_turn)) > M_PI/360.0) {
-                t += TIME_STEP;
-                current_heading = lerp(prev_heading, prev_heading + to_turn, (t- prev_t)/turn_time);
+            while(distance_sqr(goal_pos, current_pos) > 0.01) {
+                if(std::abs(angle_rad(current_pos - goal_pos) >= M_PI/4.0)) {
+                    goal_heading = current_heading + angle_rad(goal_pos - current_pos) - current_heading;
 
-                if(current_heading >= 360.0) {
-                    current_heading -= 360.0;
-                } else if(current_heading < 0.0) {
-                    current_heading += 360.0;
+                    while(std::abs(current_heading - goal_heading) > M_PI/180.0) {
+                        t += TIME_STEP;
+                        current_heading = (current_heading + (MAX_TURN * TIME_STEP));
+
+                        if(current_heading > M_PI) {
+                            current_heading = current_heading - (2.0 * M_PI);
+                        } else if(current_heading < -M_PI) {
+                            current_heading = current_heading + (2.0 * M_PI);
+                        }
+
+                        Vec2D view_point = current_pos + (.3048 / 2.0) * Vec2D(std::cos(current_heading), std::sin(current_heading));
+
+                        std::vector<size_t> near = point_graph.radius_search(view_point, .3048 / 2.0);
+                        if(near.size() > 0) {
+                            searching = false;
+                            picking_up = true;
+                            goal_pos = point_graph.get_point(point_graph.nearest_neighbor(view_point));
+                            std::cout << "\nBlock found at " << goal_pos.x << ", " << goal_pos.y << " while turning.\n";
+                            break;
+                        }
+                    }
                 }
 
-                Vec2D view_point = current_pos + (.3048 / 2.0) * Vec2D(std::cos(current_heading), std::sin(current_heading));
-
-                std::vector<size_t> near = point_graph.radius_search(view_point, .3048 / 2.0);
-                if(near.size() > 0) {
-                    searching = false;
-                    picking_up = true;
-                    goal_pos = point_graph.get_point(point_graph.nearest_neighbor(view_point));
-                    std::cout << "\nBlock found at " << goal_pos.x << ", " << goal_pos.y << " while turning.\n";
+                if(!searching) {
                     break;
                 }
-            }
 
-            if(!searching) {
-                continue;
-            }
-
-            while(distance_sqr(goal_pos, current_pos) > 0.01) {
                 t += TIME_STEP;
-                current_pos.x = lerp(prev_pos.x, goal_pos.x, (t - prev_t - turn_time) / move_time);
-                current_pos.y = lerp(prev_pos.y, goal_pos.y, (t - prev_t - turn_time) / move_time);
+                current_pos += Vec2D(std::cos(current_heading), std::sin(current_heading)) * (MAX_VELOCITY * TIME_STEP);
 
                 Vec2D view_point = current_pos + (.3048 / 2.0) * Vec2D(std::cos(current_heading), std::sin(current_heading));
 
@@ -259,22 +258,26 @@ int main(int argc, char** argv) {
             }
 
         } else if(picking_up) {
-            while(std::abs(current_heading - (prev_heading + to_turn)) > M_PI/360.0) {
-                t += TIME_STEP;
-                current_heading = lerp(prev_heading, prev_heading + to_turn, t/turn_time);
-
-                if(current_heading >= 360.0) {
-                    current_heading -= 360.0;
-                } else if(current_heading < 0.0) {
-                    current_heading += 360.0;
-                }
-
-            }
 
             while(distance_sqr(goal_pos, current_pos) > 0.01*0.01) {
+                if(std::abs(angle_rad(current_pos - goal_pos) >= M_PI/4.0)) {
+                    goal_heading = current_heading + angle_rad(goal_pos - current_pos) - current_heading;
+
+                    while(std::abs(current_heading - (prev_heading + to_turn)) > M_PI/180.0) {
+                        t += TIME_STEP;
+                        current_heading = (current_heading + (MAX_TURN * TIME_STEP));
+
+                        if(current_heading > M_PI) {
+                            current_heading = current_heading - (2.0 * M_PI);
+                        } else if(current_heading < -M_PI) {
+                            current_heading = current_heading + (2.0 * M_PI);
+                        }
+
+                    }
+                }
+
                 t += TIME_STEP;
-                current_pos.x = lerp(prev_pos.x, goal_pos.x, (t - turn_time) / move_time);
-                current_pos.y = lerp(prev_pos.y, goal_pos.y, (t - turn_time) / move_time);
+                current_pos += Vec2D(std::cos(current_heading), std::sin(current_heading)) * (MAX_VELOCITY * TIME_STEP);
             }
 
             picking_up = false;
@@ -298,21 +301,25 @@ int main(int argc, char** argv) {
                 continue;
             }
 
-            while(std::abs(current_heading - (prev_heading + to_turn)) > M_PI/360.0) {
-                t += TIME_STEP;
-                current_heading = lerp(prev_heading, prev_heading + to_turn, t/turn_time);
-
-                if(current_heading >= 360.0) {
-                    current_heading -= 360.0;
-                } else if(current_heading < 0.0) {
-                    current_heading += 360.0;
-                }
-            }
-
             while(distance_sqr(goal_pos, current_pos) > 0.01*0.01) {
+                if(std::abs(angle_rad(current_pos - goal_pos) >= M_PI/4.0)) {
+                    goal_heading = current_heading + angle_rad(goal_pos - current_pos) - current_heading;
+
+                    while(std::abs(current_heading - (prev_heading + to_turn)) > M_PI/180.0) {
+                        t += TIME_STEP;
+                        current_heading = (current_heading + (MAX_TURN * TIME_STEP));
+
+                        if(current_heading > M_PI) {
+                            current_heading = current_heading - (2.0 * M_PI);
+                        } else if(current_heading < -M_PI) {
+                            current_heading = current_heading + (2.0 * M_PI);
+                        }
+
+                    }
+                }
+
                 t += TIME_STEP;
-                current_pos.x = lerp(prev_pos.x, goal_pos.x, (t - turn_time) / move_time);
-                current_pos.y = lerp(prev_pos.y, goal_pos.y, (t - turn_time) / move_time);
+                current_pos += Vec2D(std::cos(current_heading), std::sin(current_heading)) * (MAX_VELOCITY * TIME_STEP);
             }
         }
     }
