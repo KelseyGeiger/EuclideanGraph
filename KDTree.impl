@@ -1,12 +1,15 @@
-EuclideanGraph::KDTree::~KDTree() {
+#ifndef KDTREE_IMPL
+#define KDTREE_IMPL
+
+inline EuclideanGraph::KDTree::~KDTree() {
     delete root;
 }
 
-Vec2D EuclideanGraph::KDTree::get_point(size_t idx) const {
+inline Vec2D EuclideanGraph::KDTree::get_point(size_t idx) const {
     return owner.points.at(idx);
 }
 
-size_t EuclideanGraph::KDTree::nearest_neigbor(Vec2D point) const {
+inline size_t EuclideanGraph::KDTree::nearest_neighbor(Vec2D point) const {
     if(root) {
         return root->nearest_neighbor(point, root->separator);
     } else {
@@ -14,7 +17,7 @@ size_t EuclideanGraph::KDTree::nearest_neigbor(Vec2D point) const {
     }
 }
 
-std::vector<size_t> EuclideanGraph::KDTree::radius_search(Vec2D point, double radius) const {
+inline std::vector<size_t> EuclideanGraph::KDTree::radius_search(Vec2D point, double radius) const {
     if(root) {
         return root->radius_search(point, radius);
     } else {
@@ -22,7 +25,7 @@ std::vector<size_t> EuclideanGraph::KDTree::radius_search(Vec2D point, double ra
     }
 }
 
-void EuclideanGraph::KDTree::insert(size_t idx) {
+inline void EuclideanGraph::KDTree::insert(size_t idx) {
     if(root == NULL) {
         root = new KDTreeNode(*this, idx, 0);
     } else {
@@ -31,18 +34,36 @@ void EuclideanGraph::KDTree::insert(size_t idx) {
     count++;
 }
 
-void EuclideanGraph::KDTree::clear() {
+inline void EuclideanGraph::KDTree::insert(std::vector<size_t> points) {
+    for(size_t i = 0; i < points.size(); i++) {
+        insert(points[i]);
+    }
+}
+
+inline void EuclideanGraph::KDTree::remove(size_t idx) {
+    if(root != NULL) {
+        if(root->separator == idx) {
+            std::vector<size_t> to_reinsert = root->get_children();
+            delete root;
+            insert(to_reinsert);
+        } else {
+            root->remove(idx);
+        }
+    }
+}
+
+inline void EuclideanGraph::KDTree::clear() {
     delete root;
     root = NULL;
     count = 0;
 }
 
-EuclideanGraph::KDTree::KDTreeNode::~KDTreeNode() {
+inline EuclideanGraph::KDTree::KDTreeNode::~KDTreeNode() {
     delete less;
     delete greater;
 }
 
-void EuclideanGraph::KDTree::KDTreeNode::insert(size_t idx) {
+inline void EuclideanGraph::KDTree::KDTreeNode::insert(size_t idx) {
     size_t component = level % 2;
     Vec2D to_insert = owner.get_point(idx);
     Vec2D sep = owner.get_point(separator);
@@ -62,9 +83,96 @@ void EuclideanGraph::KDTree::KDTreeNode::insert(size_t idx) {
     }
 }
 
+inline void EuclideanGraph::KDTree::KDTreeNode::insert(std::vector<size_t> points) {
+    for(size_t i = 0; i < points.size(); i++) {
+        insert(points[i]);
+    }
+}
+
+inline void EuclideanGraph::KDTree::KDTreeNode::remove(size_t idx) {
+    if(less != NULL && less->separator == idx) {
+        std::vector<size_t> to_insert = less->get_children();
+        delete less;
+        insert(to_insert);
+    } else if(greater != NULL && greater->separator == idx) {
+        std::vector<size_t> to_insert = greater->get_children();
+        delete greater;
+        insert(to_insert);
+    } else {
+
+        size_t component = level % 2;
+        Vec2D to_find = owner.get_point(idx);
+        Vec2D sep = owner.get_point(separator);
+
+        if(to_find[component] < sep[component]) {
+            if(less != NULL) {
+                less->remove(idx);
+            } else {
+                return;
+            }
+        } else {
+            if(greater != NULL) {
+                greater->remove(idx);
+            } else {
+                return;
+            }
+        }
+    }
+}
+
+inline std::vector<size_t> EuclideanGraph::KDTree::KDTreeNode::get_children() const {
+    std::vector<size_t> child_points;
+
+    if(less != NULL) {
+        std::vector<size_t> less_child = less->get_children();
+        size_t median = less_child.size() / 2;
+
+        for(size_t i = 0; i < median; i++) {
+            child_points.push_back(less_child[i]);
+        }
+
+        child_points.push_back(less->separator);
+
+        for(size_t i = median; i < less_child.size(); i++) {
+            child_points.push_back(less_child[i]);
+        }
+    }
+
+    if(greater != NULL) {
+        std::vector<size_t> greater_child = greater->get_children();
+        size_t median = greater_child.size() / 2;
+
+        for(size_t i = 0; i < median; i++) {
+            child_points.push_back(greater_child[i]);
+        }
+
+        child_points.push_back(greater->separator);
+
+        for(size_t i = median; i < greater_child.size(); i++) {
+            child_points.push_back(greater_child[i]);
+        }
+    }
+
+    return child_points;
+}
+
+inline void EuclideanGraph::KDTree::KDTreeNode::update_indices(size_t idx) {
+    if(less != NULL) {
+        less->update_indices(idx);
+    }
+
+    if(separator > idx) {
+        separator--;
+    }
+
+    if(greater != NULL) {
+        greater->update_indices(idx);
+    }
+}
+
 //Adapted from here: https://en.wikipedia.org/wiki/K-d_tree#Nearest_neighbour_search
 
-size_t EuclideanGraph::KDTree::KDTreeNode::nearest_neighbor(Vec2D point, size_t current_best) const {
+inline size_t EuclideanGraph::KDTree::KDTreeNode::nearest_neighbor(Vec2D point, size_t current_best) const {
 
     //If this is a leaf, then the algorithm has searched to the closest point it can find.
     //So this is the initial current best, pass it up the call stack.
@@ -123,7 +231,7 @@ size_t EuclideanGraph::KDTree::KDTreeNode::nearest_neighbor(Vec2D point, size_t 
     return current_best;
 }
 
-std::vector<size_t> EuclideanGraph::KDTree::KDTreeNode::radius_search(Vec2D point, double radius) const {
+inline std::vector<size_t> EuclideanGraph::KDTree::KDTreeNode::radius_search(Vec2D point, double radius) const {
     std::vector<size_t> in_rad;
     Vec2D sep = owner.get_point(separator);
 
@@ -166,3 +274,5 @@ std::vector<size_t> EuclideanGraph::KDTree::KDTreeNode::radius_search(Vec2D poin
 
     return in_rad;
 }
+
+#endif

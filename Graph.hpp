@@ -23,11 +23,14 @@ struct EuclideanGraph::Graph {
     void insert_vertex(size_t index);
     void insert_edge(size_t from, size_t to);
     void insert(size_t index, double radius);
+    void remove(size_t index);
 
-    std::stack<Vec2D> A_star(size_t from, size_t to) const;
-    std::stack<Vec2D> construct_path(const std::map<size_t, size_t>& pred, size_t current) const;
+    std::vector<Vec2D> A_star(size_t from, size_t to) const;
+    std::vector<Vec2D> construct_path(const std::map<size_t, size_t>& pred, size_t current) const;
 
     Vec2D get_point(size_t idx) const;
+
+    void clear();
 
     struct Vertex {
         size_t index;
@@ -50,6 +53,9 @@ struct EuclideanGraph::Graph {
         double weight;
 
         Edge(size_t f, size_t t, double w) : from(f), to(t), weight(w) {}
+
+        bool operator==(const Edge& other);
+        bool operator!=(const Edge& other);
     };
 
 };

@@ -8,7 +8,7 @@ struct Vec2D {
     double x;
     double y;
 
-    Vec2D(double x, double y) : x(x), y(y) {}
+    Vec2D(double x = 0.0, double y = 0.0) : x(x), y(y) {}
     Vec2D(const Vec2D& v) : x(v.x), y(v.y) {}
 
     double& operator[](size_t idx);
