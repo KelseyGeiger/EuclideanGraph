@@ -28,78 +28,46 @@ inline void EuclideanGraph::Graph::insert(size_t index, double radius) {
 }
 
 inline void EuclideanGraph::Graph::remove(size_t index) {
-    std::map<size_t, Vertex>::iterator iter = vertices.find(index);
-    if(iter != vertices.end()) {
-        vertices.erase(iter);
+    for(size_t i = 0; i < edges.size(); i++) {
+        if(edges[i].from == index || edges[i].to == index) {
+            edges.erase(edges.begin()+i);
 
-        size_t i = 0;
-        while((edges[i].from < index) && (edges[i].to < index) && (i < edges.size())) {
-            i++;
-        }
+            size_t f = edges[i].from;
+            size_t t = edges[i].to;
 
-        while(i < edges.size()) {
-            if(edges[i].from == index) {
-                Vertex& v = vertices[edges[i].to];
-
-                if(v.index > index) {
-                    v.index--;
-                }
-
-                for(size_t j = 0; j < v.edge_indices.size(); j++) {
-                    if(v.edge_indices[j] == i) {
-                        v.edge_indices.erase(v.edge_indices.begin() + j);
-                        j--;
-                    } else if(v.edge_indices[j] > i) {
-                        v.edge_indices[j]--;
+            if(f != index) {
+                for(size_t j = 0; j < vertices[f].edge_indices.size(); j++) {
+                    if(vertices[f].edge_indices[j] == i) {
+                        vertices[f].edge_indices.erase(vertices[f].edge_indices.begin()+j);
+                        break;
                     }
                 }
-
-                edges.erase(edges.begin()+i);
-                i--;
-            } else if(edges[i].to == index) {
-                Vertex& v = vertices[edges[i].from];
-
-                if(v.index > index) {
-                    v.index--;
-                }
-
-                for(size_t j = 0; j < v.edge_indices.size(); j++) {
-                    if(v.edge_indices[j] == i) {
-                        v.edge_indices.erase(v.edge_indices.begin() + j);
-                        j--;
-                    } else if(v.edge_indices[j] > i) {
-                        v.edge_indices[j]--;
-                    }
-                }
-
-                edges.erase(edges.begin()+i);
-                i--;
-
             } else {
-                if(edges[i].from > index) {
-
-                    vertices[edges[i].from].index--;
-                    edges[i].from--;
-
-                }
-
-                if(edges[i].to > index) {
-
-                    vertices[edges[i].to].index--;
-                    edges[i].to--;
-
+                for(size_t j = 0; j < vertices[t].edge_indices.size(); j++) {
+                    if(vertices[t].edge_indices[j] == i) {
+                        vertices[t].edge_indices.erase(vertices[t].edge_indices.begin()+j);
+                        break;
+                    }
                 }
             }
 
-            i++;
-        }
+            i--;
+        } else {
+            if(edges[i].to > index) {
+                edges[i].to--;
+            }
 
-        for(size_t i = index; i < owner.points.size(); i++) {
-            vertices[i] = vertices[i+1];
+            if(edges[i].from > index) {
+                edges[i].from--;
+            }
         }
-
-        vertices.erase(vertices.find(owner.points.size()));
     }
+
+    for(size_t i = index; i < owner.points.size()-1; i++) {
+        vertices[i] = vertices[i+1];
+    }
+
+    vertices.erase(vertices.find(owner.points.size()-1));
 }
 
 
@@ -183,6 +151,72 @@ inline std::vector<Vec2D> EuclideanGraph::Graph::A_star(size_t from, size_t to) 
     return std::vector<Vec2D>();
 }
 
+inline std::vector<Vec2D> EuclideanGraph::Graph::A_star_exclusive(size_t from, size_t to, std::vector<size_t> excluded) const {
+    std::set<size_t> closed;
+    std::set<size_t> open;
+    std::map<size_t, size_t> predecessor;
+    std::map<size_t, double> costs;
+    std::map<size_t, double> estimated_costs;
+
+    for(size_t i = 0; i < excluded.size(); i++) {
+        closed.insert(excluded[i]);
+    }
+
+    open.insert(from);
+    costs[from] = 0;
+
+    Vec2D from_pt = get_point(from);
+    Vec2D goal_pt = get_point(to);
+
+    estimated_costs[from] = distance(goal_pt, from_pt);
+
+    while(!open.empty()) {
+        size_t current = std::min_element(estimated_costs.begin(), estimated_costs.end(), CompareCosts())->first;
+
+        if(open.find(current) == open.end()) {
+            estimated_costs.erase(estimated_costs.find(current));
+            continue;
+        }
+
+        if(current == to) {
+            return construct_path(predecessor, current);
+        }
+
+        open.erase(open.find(current));
+        closed.insert(current);
+
+        for(int i = 0; i < vertices.at(current).edge_indices.size(); i++) {
+            Edge neighbor_edge = edges.at(vertices.at(current).edge_indices.at(i));
+            size_t neighbor = neighbor_edge.to;
+
+            if(neighbor == current) {
+                neighbor = neighbor_edge.from;
+            }
+
+            if(closed.find(neighbor) != closed.end()) {
+                continue;
+            }
+
+            double tentative = costs[current] + neighbor_edge.weight;
+            if(open.find(neighbor) == open.end()) {
+                open.insert(neighbor);
+            } else {
+                if(tentative >= costs[neighbor]) {
+                    continue;
+                }
+            }
+
+            Vec2D neighbor_pt = get_point(neighbor);
+
+            predecessor[neighbor] = current;
+            costs[neighbor] = tentative;
+            estimated_costs[neighbor] = tentative + distance(goal_pt, neighbor_pt);
+        }
+    }
+
+    return std::vector<Vec2D>();
+}
+
 inline Vec2D EuclideanGraph::Graph::get_point(size_t idx) const {
     return owner.points.at(idx);
 }
@@ -190,6 +224,13 @@ inline Vec2D EuclideanGraph::Graph::get_point(size_t idx) const {
 inline void EuclideanGraph::Graph::clear() {
     vertices.clear();
     edges.clear();
+}
+
+inline EuclideanGraph::Graph::Vertex& EuclideanGraph::Graph::Vertex::operator=(const EuclideanGraph::Graph::Vertex& other) {
+    this->index = other.index;
+    this->edge_indices = other.edge_indices;
+
+    return *this;
 }
 
 inline bool EuclideanGraph::Graph::Vertex::operator==(const Vertex& other) {

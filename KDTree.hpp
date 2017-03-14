@@ -20,6 +20,7 @@ struct EuclideanGraph::KDTree {
 
     Vec2D get_point(size_t idx) const;
     size_t nearest_neighbor(Vec2D point) const;
+    std::vector<size_t> k_nearest(Vec2D point, size_t k) const;
     std::vector<size_t> radius_search(Vec2D point, double radius) const;
 
     void insert(size_t idx);
@@ -48,6 +49,7 @@ struct EuclideanGraph::KDTree {
         void remove(size_t idx);
         std::vector<size_t> get_children() const;
         void update_indices(size_t idx);
+        std::vector<size_t> k_nearest(Vec2D point, size_t k) const;
         size_t nearest_neighbor(Vec2D point, size_t current_best) const;
         std::vector<size_t> radius_search(Vec2D point, double radius) const;
 

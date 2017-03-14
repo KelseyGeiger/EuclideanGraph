@@ -22,9 +22,11 @@ class EuclideanGraph {
         void insert(Vec2D point, double radius);
         void remove(Vec2D point);
 
-        size_t nearest_neighbor(Vec2D point) const ;
+        size_t nearest_neighbor(Vec2D point) const;
+        std::vector<size_t> k_nearest(Vec2D point, size_t k) const;
         std::vector<size_t> radius_search(Vec2D point, double radius) const;
         std::vector<Vec2D> A_star(Vec2D start, Vec2D goal) const;
+        std::vector<Vec2D> A_star_exclusive(Vec2D start, Vec2D goal, std::vector<Vec2D> excluded) const;
 
         void clear();
         size_t size() const;

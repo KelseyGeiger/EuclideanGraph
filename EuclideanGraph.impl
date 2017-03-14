@@ -55,6 +55,10 @@ inline size_t EuclideanGraph::nearest_neighbor(Vec2D point) const {
     return pointTree->nearest_neighbor(point);
 }
 
+inline std::vector<size_t> EuclideanGraph::k_nearest(Vec2D point, size_t k) const {
+    return pointTree->k_nearest(point, k);
+}
+
 inline std::vector<size_t> EuclideanGraph::radius_search(Vec2D point, double radius) const {
     return pointTree->radius_search(point, radius);
 }
@@ -67,6 +71,27 @@ inline std::vector<Vec2D> EuclideanGraph::A_star(Vec2D start, Vec2D goal) const 
         return graph->A_star(start_idx, goal_idx);
     } else {
         return std::vector<Vec2D>();
+    }
+}
+
+inline std::vector<Vec2D> EuclideanGraph::A_star_exclusive(Vec2D start, Vec2D goal, std::vector<Vec2D> excluded) const {
+    if(excluded.size() == 0) {
+        return A_star(start, goal);
+    } else {
+        if(pointTree->root != NULL) {
+            size_t start_idx = nearest_neighbor(start);
+            size_t goal_idx = nearest_neighbor(goal);
+
+            std::vector<size_t> vertices;
+
+            for(size_t i = 0; i < excluded.size(); i++) {
+                vertices.push_back(nearest_neighbor(excluded[i]));
+            }
+
+            return graph->A_star_exclusive(start_idx, goal_idx, vertices);
+        } else {
+            return std::vector<Vec2D>();
+        }
     }
 }
 

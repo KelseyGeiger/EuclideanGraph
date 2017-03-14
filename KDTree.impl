@@ -17,6 +17,18 @@ inline size_t EuclideanGraph::KDTree::nearest_neighbor(Vec2D point) const {
     }
 }
 
+inline std::vector<size_t> EuclideanGraph::KDTree::k_nearest(Vec2D point, size_t k) const {
+    if(root) {
+        if(count <= k) {
+            return root->get_children();
+        } else {
+            return root->k_nearest(point, k);
+        }
+    } else {
+        return std::vector<size_t>();
+    }
+}
+
 inline std::vector<size_t> EuclideanGraph::KDTree::radius_search(Vec2D point, double radius) const {
     if(root) {
         return root->radius_search(point, radius);
@@ -229,6 +241,70 @@ inline size_t EuclideanGraph::KDTree::KDTreeNode::nearest_neighbor(Vec2D point, 
     //We return whatever is the current best at this point, up the call stack.
 
     return current_best;
+}
+
+//Modified from nearest_neighbor, using some structure from radius_search
+
+inline std::vector<size_t> EuclideanGraph::KDTree::KDTreeNode::k_nearest(Vec2D point, size_t k) const {
+    std::vector<size_t> nearest;
+
+    if(k == 0) {
+        return nearest;
+    }
+
+    //If this is a leaf, automatically return a vector of size 1 with our separator
+
+    if(less == NULL && greater == NULL) {
+        nearest.push_back(separator);
+        return nearest;
+    }
+
+    Vec2D sep = owner.get_point(separator);
+    size_t component = (level % 2);
+
+    if(point[component] < sep[component]) {
+        if(less != NULL) {
+            nearest = less->k_nearest(point, k);
+        }
+    } else {
+        if(greater != NULL) {
+            nearest = greater->k_nearest(point, k);
+        }
+    }
+
+    if(nearest.size() < k) {
+        if(point[component] < sep[component]) {
+            if(greater != NULL) {
+                std::vector<size_t> further = greater->k_nearest(point, k - nearest.size());
+
+                for(size_t i = 0; i < further.size() && nearest.size() < k; i++) {
+                    nearest.push_back(further[i]);
+                }
+            }
+        } else {
+            if(less != NULL) {
+                std::vector<size_t> further = less->k_nearest(point, k - nearest.size());
+
+                for(size_t i = 0; i < further.size() && nearest.size() < k; i++) {
+                    nearest.push_back(further[i]);
+                }
+            }
+        }
+
+        for(size_t i = 0; i < nearest.size(); i++) {
+            if(distance(sep, point) < distance(owner.get_point(nearest[i]), point)) {
+                nearest.insert(nearest.begin()+i, separator);
+                nearest.pop_back();
+                break;
+            }
+        }
+
+        return nearest;
+    } else {
+
+
+
+    }
 }
 
 inline std::vector<size_t> EuclideanGraph::KDTree::KDTreeNode::radius_search(Vec2D point, double radius) const {
