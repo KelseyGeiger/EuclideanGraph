@@ -20,7 +20,8 @@ class EuclideanGraph {
         void adjust_points(Vec2D offset);
         
         void insert(Vec2D point, double radius);
-        void remove(Vec2D point);
+        void remove(Vec2D point, double epsilon);
+        void remove(size_t index);
 
         size_t nearest_neighbor(Vec2D point) const;
         std::vector<size_t> k_nearest(Vec2D point, size_t k) const;

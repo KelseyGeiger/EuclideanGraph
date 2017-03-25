@@ -56,12 +56,14 @@ inline void EuclideanGraph::KDTree::remove(size_t idx) {
     if(root != NULL) {
         if(root->separator == idx) {
             std::vector<size_t> to_reinsert = root->get_children();
-            delete root;
+            clear();
+
             insert(to_reinsert);
         } else {
             root->remove(idx);
         }
     }
+    root->update_indices(idx);
 }
 
 inline void EuclideanGraph::KDTree::clear() {
@@ -102,13 +104,18 @@ inline void EuclideanGraph::KDTree::KDTreeNode::insert(std::vector<size_t> point
 }
 
 inline void EuclideanGraph::KDTree::KDTreeNode::remove(size_t idx) {
+
     if(less != NULL && less->separator == idx) {
         std::vector<size_t> to_insert = less->get_children();
         delete less;
+        less = NULL;
+
         insert(to_insert);
     } else if(greater != NULL && greater->separator == idx) {
         std::vector<size_t> to_insert = greater->get_children();
         delete greater;
+        greater = NULL;
+
         insert(to_insert);
     } else {
 
